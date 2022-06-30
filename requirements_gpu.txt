@@ -1,0 +1,4 @@
+-r requirements_base.txt
+-i https://download.pytorch.org/whl/cu113
+torch==1.10.0+cu113
+torchvision=0.10.1+cu113

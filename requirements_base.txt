@@ -1,0 +1,9 @@
+hydra-core
+Pillow
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+pytorch-gradcam
+pytorch_lightning

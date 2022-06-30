@@ -1,0 +1,80 @@
+hydra:
+  job:
+    name: train name
+  run:
+    dir: outputs/${hydra.job.config_name}/${now:%Y-%m-%d}
+General:
+  epoch: 100
+  seed: 46
+  debug: False
+  gpus: 1
+  fp16: False
+
+Data:
+  dataset:
+    fold: 1
+    train_csv: inputs/set1_train.csv
+    test_csv: inputs/set1_test.csv
+
+  dataloader:
+    batch_size: &batch_size 16
+    num_workers: 6
+
+Augmentation:
+  train:
+    list: [horizontal_flip, vertical_flip]
+    sharpness:
+      params:
+        sharpness_factor: 2
+        p: 0.3
+    color_jitter:
+      params:
+        brightness: 0.3
+        contrast: 0.3
+        hue: 0.3
+        saturation: 0.3
+    affine:
+      params:
+        degrees: [-10., 10.]
+        scale: [0.9, 1.0]
+    random_crop:
+      params:
+        size: [220,500]
+
+
+    size: &size 512
+  valid:
+    list: []
+    size: *size
+  test:
+    list: []
+    size: *size
+
+Model:
+  name: efficientnet
+  size: b3
+  classes: [normal, anomaly]
+  pretrained: True
+  feature_size: 64
+  batch_size: *batch_size
+  image_size: *size
+  params:
+    m: 0.5
+  loss: BCE
+  optimizer:
+    name: Adam
+    params:
+      lr: 0.0001
+  lr_scheduler:
+    name: stepLR
+    params:
+      step_size: 1000
+  early_stopping:
+    enable: True
+    params:
+
+Test:
+  model_file: ???
+  export_heatmap: False
+Evaluate:
+  result_file: ???
