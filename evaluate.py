@@ -36,7 +36,7 @@ if device == 'cuda:0':
 
 # test
 @hydra.main(config_path='config')
-def evaluate(cfg : DictConfig):
+def evaluate(cfg: DictConfig):
     config_name = HydraConfig.get().job.config_name
     seed_everything(cfg.General.seed)
     fold = cfg.Data.dataset.fold
@@ -51,7 +51,6 @@ def evaluate(cfg : DictConfig):
     logger.info(f'experiment dir : {experiment_dir.resolve()}')
     logger.info(f'config : {config_name}')
 
-
     result = pd.read_csv(root_dir / cfg.Evaluate.result_file)
 
     save_dir = root_dir / 'outputs' / config_name
@@ -63,19 +62,18 @@ def evaluate(cfg : DictConfig):
         count += 1
         if row[1] == row[2]:
             correct_num += 1
-    logger.info(f'acc: {correct_num / count}')
+    logger.info(f'normal acc: {correct_num / count}')
 
     # hist
     labels = np.array(result['label'])
     preds = np.array(result['prediction'])
-    #scores = np.array(torch.tensor(result['1_anomaly'].to_list()).sigmoid().tolist())
-    scores = np.array(result['1_anomaly']) + 50
+    scores = np.array((torch.tensor(result['anomaly'].to_list()).sigmoid() * 100).tolist())
     draw_hist(labels, scores, save_dir)
 
     # roc, auroc
     fpr, tpr, threshold = roc_plot(labels, scores, save_dir)
     logger.debug(f'fpr:{fpr}, tpr:{tpr}\n threshold:{threshold}')
-    
+
     # 精度最良のconfusion matrix
     cm = draw_confusion_matrix(labels, preds, save_dir=save_dir, name='acc_confusion matrix')
     # 見逃しゼロのconfusion matrix
@@ -84,9 +82,9 @@ def evaluate(cfg : DictConfig):
     # 間違い画像出力
     export_wrong_images(result=result, root_dir=root_dir, output_dir=root_dir / 'outputs' / config_name)
 
-
     timer.record(name='end')
     logger.info(f'elapsed time : {str(timer.get_elapsed_time())}')
+
 
 if __name__ == '__main__':
     evaluate()

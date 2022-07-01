@@ -71,16 +71,17 @@ def test(cfg: DictConfig):
         indivisual_score_list[i] = []
 
     # スコア算出
-    i = 0
     with torch.no_grad():
         model = model.to(device)
         model.eval()
         test_csv = pd.read_csv(root_dir / cfg.Data.dataset.test_csv)
         test_data, test_label = test_csv.path.to_list(), test_csv.label.to_list()
+        if is_debug:
+            test_data = test_data[:len(test_data)*0.05]
+            test_label = test_label[:len(test_label)*0.05]
         transform = get_transform(cfg_augmentation=cfg.Augmentation['test'])
         timer.record(name='start_infer')
         for test_path, label in zip(test_data, test_label):
-            i = i + 1
             label_list.append(label)
             path_list.append(test_path)
             # データ読込
@@ -93,13 +94,14 @@ def test(cfg: DictConfig):
             for i in range(len(classes)):
                 indivisual_score_list[i].append(pred[0, i].detach().numpy())
         timer.record(name='end_infer')
-    logger.info(f'infer time avg. {timer.get_time_between("start_infer", "end_infer") / i}')
+    logger.info(f'infer time avg. {timer.get_time_between("start_infer", "end_infer") / len(test_data)}')
 
     result = pd.DataFrame({'label': label_list, 'prediction': pred_list, 'Image path': path_list})
     for i in range(len(classes)):
         result[classes[i]] = indivisual_score_list[i]
+
     # heatmap class index
-    class_idx = None
+    class_idx = cfg.Test.heatmap_class
 
     export_path = root_dir / 'outputs' / config_name / 'heatmaps' / f'fold{str(fold)}'
     for folder in classes:
@@ -113,7 +115,7 @@ def test(cfg: DictConfig):
             original_img_path = root_dir / Path(row[3].replace('\\', os.sep))
             save_path = export_path / classes[row[1]] / original_img_path.name
             save_path_list.append(save_path)
-            # ヒートマップ出力 class_idxでどのクラスのヒートマップを出力するかを設定 Noneなら一番スコアが高いクラスになるはず
+            # ヒートマップ出力 class_idxでどのクラスのヒートマップを出力するかを設定 Noneなら一番スコアが高いクラスになる
             create_heatmap(model.get_net().model,
                            target_layer=model.get_net().model.features[-2][0],
                            path=original_img_path,
@@ -123,7 +125,7 @@ def test(cfg: DictConfig):
                            add_normal=cfg.Test.add_normal,
                            class_idx=class_idx)
 
-        result['Prediction Image Path'] = save_path_list
+        result['Heatmap Image Path'] = save_path_list
     result_dir = root_dir / 'outputs/results'
     result_dir.mkdir(parents=True, exist_ok=True)
     result.to_csv(result_dir / f'{config_name}.csv', index=False)
