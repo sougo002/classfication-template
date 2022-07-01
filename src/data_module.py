@@ -29,6 +29,13 @@ class CustomDataModule(pl.LightningDataModule):
         self.test_df = None
 
     def get_train_valid_df(self):
+        # valid == test
+        if self.cfg_general.no_valid:
+            logger.warning('No validation is NOT RECOMMENDED. \
+                            over-fitting to test data may cause some issue during actual operation.')
+            train_df = pd.read_csv(self.root_dir / self.cfg_dataset.train_csv)
+            valid_df = pd.read_csv(self.root_dir / self.cfg_dataset.test_csv)
+            return train_df, valid_df
         # 学習，バリデーションdfを返す(stratified k-fold)
         df = pd.read_csv(self.root_dir / self.cfg_dataset.train_csv)
         logger.debug(f'train csv path:{(self.root_dir / self.cfg_dataset.train_csv).resolve()}')
@@ -42,13 +49,12 @@ class CustomDataModule(pl.LightningDataModule):
             return train_df, valid_df
         else:
             file_df = pd.read_csv(self.root_dir / self.cfg_dataset.train_csv)
-            return train_test_split(file_df, test_size=self.cfg_dataset.valid_size, random_state=self.cfg_general.seed, stratify=file_df['label'])
+            return train_test_split(file_df,
+                                    test_size=self.cfg_dataset.valid_size,
+                                    random_state=self.cfg_general.seed,
+                                    stratify=file_df['label'])
 
     def get_test_df(self):
-        # valid == test
-        if self.cfg_general.no_valid:
-            logger.warning(f'No validation is NOT RECOMMENDED. over-fitting to test data may cause some issue during opration.')
-            return self.valid_df
         logger.debug(f'test csv path:{(self.root_dir / self.cfg_dataset.test_csv).resolve()}')
         return pd.read_csv(self.root_dir / self.cfg_dataset.test_csv)
 
