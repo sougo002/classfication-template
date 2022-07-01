@@ -7,13 +7,12 @@ from hydra.core.hydra_config import HydraConfig
 from hydra.utils import get_original_cwd
 from omegaconf import DictConfig, OmegaConf
 import pandas as pd
-from PIL import Image
 import numpy as np
 
 # インナーコード
 from src.utils.time_count import Timer
 from src.utils.custom_logging import CustomLogger
-from src.utils.utils import draw_hist, export_wrong_images, roc_plot, draw_confusion_matrix
+from src.utils.utils import draw_hist, export_wrong_images, draw_confusion_matrix
 # 標準ライブラリ
 from pathlib import Path
 
@@ -35,7 +34,7 @@ if device == 'cuda:0':
 
 # test
 @hydra.main(config_path='config')
-def evaluate(cfg : DictConfig):
+def evaluate(cfg: DictConfig):
     config_name = HydraConfig.get().job.config_name
     seed_everything(cfg.General.seed)
     fold = cfg.Data.dataset.fold
@@ -49,7 +48,6 @@ def evaluate(cfg : DictConfig):
     logger.info(f'root dir : {root_dir}')
     logger.info(f'experiment dir : {experiment_dir.resolve()}')
     logger.info(f'config : {config_name}')
-
 
     result = pd.read_csv(root_dir / cfg.Evaluate.result_file)
 
@@ -67,13 +65,16 @@ def evaluate(cfg : DictConfig):
     # hist
     labels = np.array(result['label'])
     preds = np.array(result['prediction'])
-    # TODO: classesでのループにする
-    bubble_score = np.array(torch.tensor(result['bubble'].to_list()).sigmoid().tolist())
-    hole_score = np.array(torch.tensor(result['hole'].to_list()).sigmoid().tolist())
+    scores_list = []
+    for anomaly_class in cfg.Model.anomaly_classes:
+        ano_scores = np.array((torch.tensor(result[anomaly_class].to_list()).sigmoid() * 100).tolist())
+        draw_hist(labels, ano_scores, save_dir, label_names=list(cfg.Model.classes), name=f'{anomaly_class}_hist.png')
+        scores_list.append(ano_scores)
+    scores = [-1] * len(scores_list[0])  # 異常クラスの最大スコア,最小値で初期化
+    for i in range(len(scores_list[0])):
+        for k in range(len(scores_list)):
+            scores[i] = max(scores_list[k][i], scores[i])
 
-    draw_hist(labels, bubble_score, save_dir, label_names=list(cfg.Model.classes), stacked=True, name='bubble_hist.png')
-    draw_hist(labels, hole_score, save_dir, label_names=list(cfg.Model.classes), stacked=True, name='hole_hist.png')
-    
     # TODO: 複数ラベルをまとめて2値分類にする場合の処理
     # # 〇〇のラベルを異常に
     # labels[labels==2] = 1

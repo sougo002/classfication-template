@@ -54,6 +54,7 @@ Model:
   name: efficientnet
   size: b3
   classes: [normal, anomaly]
+  anomaly_classes: [anomaly]
   pretrained: True
   feature_size: 64
   batch_size: *batch_size
@@ -68,13 +69,18 @@ Model:
   lr_scheduler:
     name: stepLR
     params:
-      step_size: 1000
+      step_size: 2000
   early_stopping:
     enable: True
     params:
+      monitor: val_loss
+      mode: min
+      patient: 5
 
 Test:
   model_file: ???
+  heatmap_class: 1
   export_heatmap: False
+  add_normal: True
 Evaluate:
   result_file: ???
