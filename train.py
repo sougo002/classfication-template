@@ -2,6 +2,7 @@
 import torch
 import torchvision
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.loggers.csv_logs import CSVLogger
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -58,13 +59,18 @@ def train(cfg: DictConfig):
                        TensorBoardLogger(save_dir=str(experiment_dir))
                        ]
 
-    checkpoint_callback = ModelCheckpoint(dirpath=str(root_dir/f'outputs/checkpoints/{config_name}'),
-                                          filename='fold_'+str(fold)+'_best{val_acc:.2f}',
-                                          monitor='val_acc',
-                                          save_last=True,
-                                          save_top_k=1,
-                                          save_weights_only=True,
-                                          mode='max')
+    # define callbacks
+    callbacks = []
+    if cfg.Model.early_stopping.enable:
+        callbacks.append(EarlyStopping(**cfg.Model.early_stopping.params))
+
+    callbacks.append(ModelCheckpoint(dirpath=str(root_dir/f'outputs/checkpoints/{config_name}'),
+                                     filename='fold_'+str(fold)+'_best{val_acc:.2f}',
+                                     monitor='val_acc',
+                                     save_last=True,
+                                     save_top_k=1,
+                                     save_weights_only=True,
+                                     mode='max'))
 
     trainer = Trainer(
         max_epochs=2 if is_debug else cfg.General.epoch,
@@ -79,7 +85,7 @@ def train(cfg: DictConfig):
         default_root_dir=str(experiment_dir),
         limit_train_batches=0.02 if is_debug else 1.0,
         limit_val_batches=0.05 if is_debug else 1.0,
-        callbacks=[checkpoint_callback],
+        callbacks=callbacks,
         logger=trainer_loggers,
     )
 
