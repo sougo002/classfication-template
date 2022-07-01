@@ -55,18 +55,19 @@ def evaluate(cfg: DictConfig):
 
     save_dir = root_dir / 'outputs' / config_name
 
+    labels = np.array(result['label'])
+    preds = np.array(result['prediction'])
+
     # acc
     count = 0
     correct_num = 0
-    for row in result.itertuples():
+    for label, pred in zip(labels, preds):
         count += 1
-        if row[1] == row[2]:
+        if label == pred:
             correct_num += 1
     logger.info(f'normal acc: {correct_num / count}')
 
     # hist
-    labels = np.array(result['label'])
-    preds = np.array(result['prediction'])
     scores = np.array((torch.tensor(result['anomaly'].to_list()).sigmoid() * 100).tolist())
     draw_hist(labels, scores, save_dir)
 
@@ -78,7 +79,10 @@ def evaluate(cfg: DictConfig):
     cm = draw_confusion_matrix(labels, preds, save_dir=save_dir, name='acc_confusion matrix')
     # 見逃しゼロのconfusion matrix
     cm = draw_confusion_matrix(labels, scores, threshold[-2], save_dir=save_dir)
-    logger.info(cm)
+    tn = cm[0][0]
+    fp = cm[1][0]
+    od_rate = fp / (tn + fp)
+    logger.info(f'見逃し0の過検知率:{od_rate}')
     # 間違い画像出力
     export_wrong_images(result=result, root_dir=root_dir, output_dir=root_dir / 'outputs' / config_name)
 
