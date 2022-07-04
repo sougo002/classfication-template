@@ -181,7 +181,6 @@ def roc_plot(y_true, y_score, save_dir=None):
     plt.xlabel('FPR: False positive rate')
     plt.ylabel('TPR: True positive rate')
     plt.grid()
-    print(f'AUC SCORE: {auc_score}')
     if save_dir:
         fig.savefig((save_dir/'roc.png').resolve())
     plt.close()

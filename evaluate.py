@@ -35,7 +35,7 @@ if device == 'cuda:0':
 
 
 # test
-@hydra.main(config_path='config')
+@hydra.main(config_path='config', version_base=None)
 def evaluate(cfg: DictConfig):
     config_name = HydraConfig.get().job.config_name
     seed_everything(cfg.General.seed)
@@ -53,7 +53,7 @@ def evaluate(cfg: DictConfig):
 
     result = pd.read_csv(root_dir / cfg.Evaluate.result_file)
 
-    save_dir = root_dir / 'outputs' / config_name
+    save_dir = root_dir / 'outputs' / config_name / fold
 
     labels = np.array(result['label'])
     preds = np.array(result['prediction'])
@@ -84,7 +84,7 @@ def evaluate(cfg: DictConfig):
     od_rate = fp / (tn + fp)
     logger.info(f'見逃し0の過検知率:{od_rate}')
     # 間違い画像出力
-    export_wrong_images(result=result, root_dir=root_dir, output_dir=root_dir / 'outputs' / config_name)
+    export_wrong_images(result=result, root_dir=root_dir, output_dir=save_dir)
 
     timer.record(name='end')
     logger.info(f'elapsed time : {str(timer.get_elapsed_time())}')
