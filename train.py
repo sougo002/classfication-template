@@ -38,7 +38,7 @@ if device == 'cuda:0':
 
 
 # train
-@hydra.main(config_path='config')
+@hydra.main(config_path='config', version_base=None)
 def train(cfg: DictConfig):
     config_name = HydraConfig.get().job.config_name
     seed_everything(cfg.General.seed)
@@ -64,8 +64,8 @@ def train(cfg: DictConfig):
     if cfg.Model.early_stopping.enable:
         callbacks.append(EarlyStopping(**cfg.Model.early_stopping.params))
 
-    callbacks.append(ModelCheckpoint(dirpath=str(root_dir/f'outputs/checkpoints/{config_name}'),
-                                     filename='fold_'+str(fold)+'_best{val_acc:.2f}',
+    callbacks.append(ModelCheckpoint(dirpath=str(root_dir/f'outputs/checkpoints/{config_name}/{fold}'),
+                                     filename='best{val_acc:.2f}',
                                      monitor='val_acc',
                                      save_last=True,
                                      save_top_k=1,

@@ -1,6 +1,7 @@
 hydra:
   job:
     name: train name
+    chdir: True
   run:
     dir: outputs/${hydra.job.config_name}/${now:%Y-%m-%d}
 General:
@@ -75,12 +76,13 @@ Model:
     params:
       monitor: val_loss
       mode: min
-      patient: 5
+      patience: 5
 
 Test:
   model_file: ???
   heatmap_class: 1
   export_heatmap: False
   add_normal: True
+
 Evaluate:
   result_file: ???

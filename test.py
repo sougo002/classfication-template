@@ -37,7 +37,7 @@ if device == 'cuda:0':
 
 
 # test
-@hydra.main(config_path='config')
+@hydra.main(config_path='config', version_base=None)
 def test(cfg: DictConfig):
     config_name = HydraConfig.get().job.config_name
     seed_everything(cfg.General.seed)
